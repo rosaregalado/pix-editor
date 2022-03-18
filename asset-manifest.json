@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/pix-editor/static/css/main.189606e6.css",
+    "main.js": "/pix-editor/static/js/main.7dab48ce.js",
+    "index.html": "/pix-editor/index.html",
+    "main.189606e6.css.map": "/pix-editor/static/css/main.189606e6.css.map",
+    "main.7dab48ce.js.map": "/pix-editor/static/js/main.7dab48ce.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.189606e6.css",
+    "static/js/main.7dab48ce.js"
+  ]
+}
