@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
+import ImageUploader from './ImageUploader'
 import Slider from './Slider'
 import SidebarItem from './SidebarItem'
-
 // set photo editor default options
 const default_options = [
   {
@@ -76,8 +76,8 @@ const default_options = [
     unit: 'px' 
   }
 ]
-
-function App() {
+const defaultImageURL = "https://firebasestorage.googleapis.com/v0/b/pix-editor-7e027.appspot.com/o/images%2F17E57C65-1D03-4D99-BA44-ED0001D6256F.jpg?alt=media&token=f2086127-3278-4f7b-8d80-614d0816699b"
+function ImageEditor({imageURL = ''}) {
   // use  state to select options AND set default options
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
   const [options, setOptions] = useState(default_options)
@@ -99,11 +99,12 @@ function App() {
     const filters = options.map(option => {
       return `${option.property}(${option.value}${option.unit})`
     })
-    return {filter: filters.join(' ')}
+    return {filter: filters.join(' '), backgroundImage: `url(${imageURL})`}
   }
 
   return (
     <div className='container'>
+      <div><h1>Pix Editor</h1></div>
       <div className='main-image' style={getImageStyle()}></div>
       <div className='sidebar'>
         {options.map((option, index) => {
@@ -125,6 +126,16 @@ function App() {
       /> 
     </div>
   );
+}
+
+function App() {
+  const [imageURL, setImageURL] = useState(defaultImageURL);
+  return (
+    <div>
+      <ImageEditor imageURL={imageURL} />
+      <ImageUploader setImageURL={setImageURL} />
+    </div>
+  )
 }
 
 export default App;
