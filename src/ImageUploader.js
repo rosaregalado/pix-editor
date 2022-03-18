@@ -3,60 +3,34 @@ import ReactDOM, { render } from 'react-dom';
 import './index.css';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storageRef } from './firebase/firebase';
-import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const FirebaseImageUpload = ({setImageURL}) => {
-  const [ image, setImage ] = useState(null);
+const FirebaseImageUpload = ({setImageURL, setImage}) => {
 
   // handle change of file
   const handleChange = e => {
-    if (e.target.files[0]) {
-      setImage(e.target.files[0])
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file)
+      getBase64(file, base64URL => setImageURL(base64URL))
     }
   };
-  const handleUpload = () => {
-    // const storageRef = ref(storage);
-    console.log(storageRef, typeof storageRef, typeof function(){})  
-    // create a new folder 'images' inside firebase storage
-    const storageImagesRef = ref(storageRef, `images/${image.name}`)
-
-    const uploadTask = uploadBytesResumable(storageImagesRef, image);
-
-    uploadTask.on('state_changed', 
-      (snapshot) => {
-        // Observe state change events such as progress, pause, and resume
-        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-        switch (snapshot.state) {
-          case 'paused':
-            console.log('Upload is paused');
-            break;
-          case 'running':
-            console.log('Upload is running');
-            break;
-        }
-      }, 
-      (error) => {
-        // Handle unsuccessful uploads
-      }, 
-      () => {
-        // Handle successful uploads on complete
-        // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          console.log('File available at', downloadURL);
-          setImageURL(downloadURL)
-        });
-      }
-    );
-  };
+  // https://stackoverflow.com/questions/47176280/how-to-convert-files-to-base64-in-react
+  const getBase64 = (file, cb) => {
+    let reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function () {
+        cb(reader.result)
+    };
+    reader.onerror = function (error) {
+        console.log('Error: ', error);
+    };
+  }
 
   return (
-    <div>
-      <br />
+    <div className='upload-div'>
+      <h3 className="upload-title">Upload an Image</h3>
       <input type='file' onChange={handleChange} accept="image/png, image/jpeg" />
-      <button onClick={handleUpload}>Upload</button>
       {/* <img src={imageURL} alt="Uploaded Photo" width="500" height="600" /> */}
     </div>
   );

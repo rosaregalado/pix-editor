@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { createRef, useState } from 'react';
 import './App.css';
 import ImageUploader from './ImageUploader'
 import Slider from './Slider'
 import SidebarItem from './SidebarItem'
-// set photo editor default options
+import { useScreenshot } from 'use-react-screenshot'
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storageRef } from './firebase/firebase';
+
+
+// set editor default options
 const default_options = [
   {
     name: 'Brightness',
@@ -76,12 +81,20 @@ const default_options = [
     unit: 'px' 
   }
 ]
-const defaultImageURL = "https://firebasestorage.googleapis.com/v0/b/pix-editor-7e027.appspot.com/o/images%2F17E57C65-1D03-4D99-BA44-ED0001D6256F.jpg?alt=media&token=f2086127-3278-4f7b-8d80-614d0816699b"
-function ImageEditor({imageURL = ''}) {
+const defaultImageURL = "https://finestayslovenia.com/wp-content/uploads/2019/01/lake-jasna-2-1536x1025.jpg"
+
+function ImageEditor({handleUpload, imageURL = ''}) {
   // use  state to select options AND set default options
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
   const [options, setOptions] = useState(default_options)
   const selectedOption = options[selectedOptionIndex]
+  // create screenshot feature
+  const screenshotRef = createRef(null)
+  const [screenshot, takeScreenshot] = useScreenshot()
+  const getImage = () => {
+    takeScreenshot(screenshotRef.current)
+    handleUpload()
+  }
 
   //handle slider changes
   function handleSliderChange({ target }) {
@@ -103,37 +116,91 @@ function ImageEditor({imageURL = ''}) {
   }
 
   return (
-    <div className='container'>
-      <div><h1>Pix Editor</h1></div>
-      <div className='main-image' style={getImageStyle()}></div>
-      <div className='sidebar'>
-        {options.map((option, index) => {
-          return (
-            <SidebarItem
-              key = {index}
-              name = {option.name}
-              active = {index === selectedOptionIndex}
-              handleClick={() => setSelectedOptionIndex(index)}
-            />
-          )
-        })}
-      </div> 
-      <Slider
-        min={selectedOption.range.min}
-        max={selectedOption.range.max}
-        value={selectedOption.value}
-        handleChange={handleSliderChange}
-      /> 
+    <div>
+      <div className='container' >
+        <div className='main-image' style={getImageStyle()} ref={screenshotRef}></div>
+        <div className='sidebar'>
+          {options.map((option, index) => {
+            return (
+              <SidebarItem
+                key = {index}
+                name = {option.name}
+                active = {index === selectedOptionIndex}
+                handleClick={() => setSelectedOptionIndex(index)}
+              />
+            )
+          })}
+        </div> 
+        <Slider
+          min={selectedOption.range.min}
+          max={selectedOption.range.max}
+          value={selectedOption.value}
+          handleChange={handleSliderChange}
+        /> 
+      </div>
+      {/* screenshot component */}
+      <div className="screenshot">
+        <button style={{ marginBottom: '10px' }} onClick={getImage}>
+          Save copy to cloud!
+        </button>
+        <img width={'50%'} src={screenshot} alt={'Screenshot'} />
+        <div>
+          Share this custom picture with your friends: <a href={imageURL}>Image URL</a>
+        </div>
+      </div>
     </div>
   );
 }
 
 function App() {
   const [imageURL, setImageURL] = useState(defaultImageURL);
+  const [image, setImage] = useState(null);
+
+  const handleUpload = () => {
+    // const storageRef = ref(storage);
+    // console.log(storageRef, typeof storageRef, typeof function(){})  
+    // create a new folder 'images' inside firebase storage
+    const storageImagesRef = ref(storageRef, `images/${image.name}`)
+
+    const uploadTask = uploadBytesResumable(storageImagesRef, image);
+
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        // Observe state change events such as progress, pause, and resume
+        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log('Upload is ' + progress + '% done');
+        switch (snapshot.state) {
+          case 'paused':
+            console.log('Upload is paused');
+            break;
+          case 'running':
+            console.log('Upload is running');
+            break;
+        }
+      }, 
+      (error) => {
+        // Handle unsuccessful uploads
+      }, 
+      () => {
+        // Handle successful uploads on complete
+        // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          console.log('File available at', downloadURL);
+          setImageURL(downloadURL)
+        });
+      }
+    );
+  };
+
   return (
     <div>
-      <ImageEditor imageURL={imageURL} />
-      <ImageUploader setImageURL={setImageURL} />
+      <div className="title">
+        <h1>Pix Editor</h1>
+        <img src={`${process.env.PUBLIC_URL}/images/camera_logo1.jpeg`} width='80px' heigh='40px' alt="logo" />
+      </div>
+      <ImageUploader setImageURL={setImageURL} setImage={setImage} />
+      <ImageEditor imageURL={imageURL} handleUpload={handleUpload} />
     </div>
   )
 }
